@@ -1,28 +1,42 @@
-import langchain_compat # This MUST be the first line
+import asyncio
 import os
-from scrapegraphai.graphs import SmartScraperGraph
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
 
-graph_config = {
-    "llm": {
-        "api_key": os.getenv("GEMINI_API_KEY"),
-        "model": "google_genai/gemini-flash-latest", 
-        "api_version": "v1",
-    },
-    "loader_kwargs": {
-        "auth": {
-            "username": os.getenv("DXB_EMAIL"),
-            "password": os.getenv("DXB_PASSWORD")
-        }
-    },
-    "headless": True 
-}
+async def run_intelligence_scan():
+    # 1. Configure the browser for Stealth and Login
+    browser_config = BrowserConfig(
+        headless=True,
+        verbose=True
+    )
+    
+    # 2. Setup the scan target
+    # We use LLM extraction directly with your Gemini Key
+    run_config = CrawlerRunConfig(
+        word_count_threshold=10,
+        extraction_strategy=None, # We'll get raw markdown first for reliability
+        cache_mode="bypass"
+    )
 
-smart_scraper_graph = SmartScraperGraph(
-    prompt="Log in and extract the November 2025 Dubai market sales value and volume.",
-    source="https://dxbinteract.com/login", 
-    config=graph_config
-)
+    async with AsyncWebCrawler(config=browser_config) as crawler:
+        print("Navigating to DXB Interact...")
+        # Step A: Attempt to Login using the page interaction feature
+        result = await crawler.arun(
+            url="https://dxbinteract.com/login",
+            config=run_config,
+            # This tells the crawler exactly how to log in
+            js_code=[
+                f"document.querySelector('input[type=\"email\"]').value = '{os.getenv('DXB_EMAIL')}';",
+                f"document.querySelector('input[type=\"password\"]').value = '{os.getenv('DXB_PASSWORD')}';",
+                "document.querySelector('button[type=\"submit\"]').click();"
+            ]
+        )
+        
+        if result.success:
+            print("--- HANDOVER PRO: DATA GATHERED ---")
+            # We print the first 1000 characters of the dashboard
+            print(result.markdown[:1000])
+        else:
+            print(f"Scan failed: {result.error_message}")
 
-print("Handover Pro: Commencing scan with compatibility fix...")
-result = smart_scraper_graph.run()
-print(result)
+if __name__ == "__main__":
+    asyncio.run(run_intelligence_scan())
