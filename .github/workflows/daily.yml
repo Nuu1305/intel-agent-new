@@ -1,0 +1,27 @@
+name: Handover Pro Daily Scan
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install Stable Tools
+        run: |
+          pip install --upgrade pip
+          pip install scrapegraphai==1.25.0 playwright
+          playwright install-deps
+          playwright install
+      - name: Run Agent
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DXB_EMAIL: ${{ secrets.DXB_EMAIL }}
+          DXB_PASSWORD: ${{ secrets.DXB_PASSWORD }}
+        run: python main.py
