@@ -1,4 +1,4 @@
-name: Handover Pro Daily Scan
+name: Handover Pro Crawl4AI
 on:
   push:
   workflow_dispatch:
@@ -15,13 +15,11 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install All Required Parts
+      - name: Install Crawl4AI
         run: |
           pip install --upgrade pip
-          # We added langchain and langchain-community to fix the missing module error
-          pip install scrapegraphai==1.25.0 playwright langchain langchain-community langchain-google-genai
-          playwright install-deps
-          playwright install
+          pip install crawl4ai
+          python -m playwright install --with-deps chromium
 
       - name: Run Agent
         env:
